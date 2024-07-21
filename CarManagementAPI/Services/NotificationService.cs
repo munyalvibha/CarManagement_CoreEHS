@@ -4,7 +4,7 @@
     {
         public void Notify(string message)
         {
-            // Logic to send notifications
+            
         }
     }
 

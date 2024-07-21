@@ -1,63 +1,73 @@
-﻿using CarManagementAPI.Models;
+﻿using CarManagementAPI.DbContext;
+using CarManagementAPI.Models;
 using CarManagementAPI.Services.Interface;
+using Microsoft.EntityFrameworkCore;
 
 namespace CarManagementAPI.Services
 {
     public class CommissionService : ICommissionService
     {
-        public decimal CalculateCommission(Salesman salesman, List<Sale> sales)
-        {
-            decimal totalCommission = 0;
+        private readonly CarDbContext _context;
 
-            foreach (var sale in sales)
+        public CommissionService(CarDbContext context)
+        {
+            _context = context;
+        }
+       
+       public IEnumerable<CommissionReport> CalculateCommission()
+       {
+            List<SalesData> salesData = _context.SalesData.ToList();
+            List<CommissionData> commissionData = _context.CommissionData.ToList();
+            List<PreviousYearSales> previousYearSales = _context.PreviousYearSales.ToList();
+
+            var reports = new List<CommissionReport>();
+
+            var groupedSales = salesData.GroupBy(s => s.Salesman);
+
+            foreach (var salesGroup in groupedSales)
             {
-                var commission = CalculateSaleCommission(salesman, sale);
-                totalCommission += commission;
+                var totalCommission = 0.0;
+                var salesman = salesGroup.Key;
+
+                foreach (var sale in salesGroup)
+                {
+                    var commission = commissionData.First(c => c.Brand == sale.Brand);
+
+                    if (sale.ModelPrice > commission.Threshold)
+                    {
+                        totalCommission += commission.FixedCommission * sale.NumberOfCarsSold;
+                    }
+
+                    double classCommission = sale.Class switch
+                    {
+                        "A" => commission.ClassACommission,
+                        "B" => commission.ClassBCommission,
+                        "C" => commission.ClassCCommission,
+                        _ => 0
+                    };
+
+                    totalCommission += classCommission * sale.ModelPrice * sale.NumberOfCarsSold;
+                }
+
+                var previousSales = previousYearSales.FirstOrDefault(p => p.Salesman == salesman);
+                if (previousSales != null && previousSales.LastYearSales > 500000)
+                {
+                    var additionalCommission = salesGroup
+                        .Where(s => s.Class == "A")
+                        .Sum(s => s.ModelPrice * s.NumberOfCarsSold) * 0.02;
+                    
+                    
+                    totalCommission += additionalCommission;
+                }
+
+                reports.Add(new CommissionReport
+                {
+                    Salesman = salesman,
+                    TotalCommission = totalCommission
+                });
             }
 
-            return totalCommission;
-        }
-
-
-        private decimal CalculateSaleCommission(Salesman salesman, Sale sale)
-        {
-            decimal baseCommission = GetBrandCommission(sale.Brand, sale.Class, sale.NumberOfCarsSold);
-            decimal additionalCommission = GetClassCommission(sale.Class, sale.NumberOfCarsSold);
-            decimal totalCommission = baseCommission + additionalCommission;
-
-            if (sale.Class == "A" && salesman.PreviousYearSales > 500000)
-            {
-                totalCommission += 0.02m * totalCommission;
-            }
-
-            return totalCommission;
-        }
-
-        private decimal GetBrandCommission(string brand, string carClass, int numberOfCarsSold)
-        {
-            decimal commission = brand switch
-            {
-                "Audi" => carClass == "A" ? 800m : 0,
-                "Jaguar" => carClass == "A" ? 750m : 0,
-                "Land Rover" => carClass == "A" ? 850m : 0,
-                "Renault" => carClass == "A" ? 400m : 0,
-                _ => 0
-            };
-
-            return commission * numberOfCarsSold;
-        }
-
-        private decimal GetClassCommission(string carClass, int numberOfCarsSold)
-        {
-            decimal percentage = carClass switch
-            {
-                "A" => 0.08m,
-                "B" => 0.06m,
-                "C" => 0.04m,
-                _ => 0
-            };
-
-            return percentage * numberOfCarsSold;
+            return reports;
         }
     }
 }

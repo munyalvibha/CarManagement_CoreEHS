@@ -6,8 +6,8 @@ namespace CarManagementAPI.Services.Interface
     {
         List<CarModel> GetAll();
         CarModel GetById(int id);
-        void Create(CarModel model);
-        void Update(CarModel model);
-        void Delete(int id);
+        bool Create(CarModel model);
+        bool Update(CarModel model);
+        bool Delete(int id);
     }
 }

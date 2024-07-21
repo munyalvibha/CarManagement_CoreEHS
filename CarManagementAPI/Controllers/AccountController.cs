@@ -57,8 +57,8 @@ namespace CarManagementAPI.Controllers
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim(ClaimTypes.NameIdentifier, user.Id)
             };
-
-            claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
+            
+            claims.AddRange(roles.Select(role => new Claim("role", role)));
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 

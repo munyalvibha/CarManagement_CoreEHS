@@ -2,6 +2,8 @@
 using CarManagementAPI.Services.Interface;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.ComponentModel;
 
 namespace CarManagementAPI.Controllers
 {
@@ -16,12 +18,13 @@ namespace CarManagementAPI.Controllers
             _commissionService = commissionService;
         }
 
-        [HttpPost]
+        [HttpGet("GetCommissionReport")]
         [Authorize(Roles = "Admin")]
-        public IActionResult CalculateCommission([FromBody] Salesman salesman, [FromBody] List<Sale> sales)
+        [Description("API to get comission report for salesman")]
+        public async Task<ActionResult<IEnumerable<CommissionReport>>> GetCommissionReport()
         {
-            var commission = _commissionService.CalculateCommission(salesman, sales);
-            return Ok(commission);
+            var reports = _commissionService.CalculateCommission();
+            return Ok(reports);
         }
     }
 }

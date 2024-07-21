@@ -46,6 +46,19 @@ builder.Services.AddControllers();
 builder.Services.AddScoped<ICarModelService, CarModelService>();
 builder.Services.AddScoped<ICommissionService, CommissionService>();
 
+builder.Services.AddCors(option =>
+{
+    option.AddPolicy("AllowSpecificOrigin",
+        buider =>
+        {
+            buider.WithOrigins("http://localhost:4200")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .SetIsOriginAllowed((host) => true)
+            .AllowCredentials();
+        });
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<NotificationService>();
@@ -61,15 +74,17 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
+app.UseCors("AllowSpecificOrigin");
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapControllers();
+app.UseStaticFiles();
+
 app.UseEndpoints(endpoints =>
 {
     endpoints.MapControllers();
 });
+
 app.Run();

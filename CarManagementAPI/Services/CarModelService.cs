@@ -1,39 +1,89 @@
-﻿using CarManagementAPI.Models;
+﻿using CarManagementAPI.DbContext;
+using CarManagementAPI.Models;
 using CarManagementAPI.Services.Interface;
 
 namespace CarManagementAPI.Services
 {
     public class CarModelService : ICarModelService
     {
-        private readonly List<CarModel> _carModels = new();
+        private readonly CarDbContext _context;
 
-        public List<CarModel> GetAll() => _carModels;
-
-        public CarModel GetById(int id) => _carModels.FirstOrDefault(m => m.Id == id);
-
-        public void Create(CarModel model)
+        public CarModelService(CarDbContext context)
         {
-            model.Id = _carModels.Count + 1;
-            _carModels.Add(model);
+            _context = context;
         }
 
-        public void Update(CarModel model)
+        public List<CarModel> GetAll() {
+            return _context.CarModels.Where(x=>x.Active == true).ToList();
+        }
+
+        public CarModel GetById(int id)
         {
-            var existingModel = GetById(model.Id);
-            if (existingModel != null)
+            return _context.CarModels.FirstOrDefault(x => x.Id == id);
+        }
+
+        public bool Create(CarModel model)
+        {
+            try
             {
-                _carModels.Remove(existingModel);
-                _carModels.Add(model);
+                _context.CarModels.Add(model);
+                _context.SaveChanges();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
             }
         }
 
-        public void Delete(int id)
+        public bool Update(CarModel model)
         {
-            var model = GetById(id);
-            if (model != null)
+            try
             {
-                _carModels.Remove(model);
+                var existingModel = GetById(model.Id);
+                if (existingModel != null)
+                {
+                    existingModel.Brand = model.Brand;
+                    existingModel.Features = model.Features;
+                    existingModel.Price = model.Price;
+                    existingModel.SortOrder = model.SortOrder;
+                    existingModel.Description = model.Description;
+                    existingModel.DateOfManufacturing = model.DateOfManufacturing;
+                    existingModel.ModelCode = model.ModelCode;
+                    existingModel.ModelName = model.ModelName;
+                    existingModel.Class = model.Class;
+
+                    _context.CarModels.Update(existingModel);
+                    _context.SaveChanges();
+                    return true;
+                }
+                return false;
             }
+            catch(Exception ex)
+            {
+                return false;
+            }
+            
+        }
+
+        public bool Delete(int id)
+        {
+            try
+            {
+                var model = GetById(id);
+                if (model != null)
+                {
+                    model.Active = false;
+                    _context.CarModels.Update(model);
+                    _context.SaveChanges();
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+            
         }
     }
 }
